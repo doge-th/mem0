@@ -561,3 +561,26 @@ class TestSearchParamValidation:
             result = memory_instance.search("test", filters={"user_id": "test"}, top_k=0)
 
         assert "results" in result
+
+
+def test_default_constructed_instances_do_not_share_a_config(mock_openai):
+    """Regression for #8005: `config: MemoryConfig = MemoryConfig()` was evaluated
+    once at import, so every default-constructed Memory() (and AsyncMemory())
+    received the same object and one instance's config changes leaked into the next."""
+    with (
+        patch("mem0.utils.factory.EmbedderFactory") as mock_embedder,
+        patch("mem0.memory.main.VectorStoreFactory") as mock_vector_store,
+        patch("mem0.utils.factory.LlmFactory") as mock_llm,
+        patch("mem0.memory.main.SQLiteManager"),
+        patch("mem0.memory.telemetry.capture_event"),
+    ):
+        mock_embedder.create.return_value = Mock()
+        mock_vector_store.create.return_value = Mock()
+        mock_llm.create.return_value = Mock()
+
+        a = Memory()
+        a.config.custom_instructions = "only remember food preferences"
+        b = Memory()
+
+        assert a.config is not b.config
+        assert b.config.custom_instructions is None

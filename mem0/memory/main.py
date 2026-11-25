@@ -485,7 +485,10 @@ class _AsyncOSSProject:
 
 
 class Memory(MemoryBase):
-    def __init__(self, config: MemoryConfig = MemoryConfig()):
+    def __init__(self, config: MemoryConfig | None = None):
+        # A default constructed at import time would be shared by every Memory()
+        # in the process, leaking one instance's config changes into the next
+        config = config or MemoryConfig()
         self.config = config
 
         self.embedding_model = EmbedderFactory.create(
@@ -2193,7 +2196,9 @@ class Memory(MemoryBase):
 
 
 class AsyncMemory(MemoryBase):
-    def __init__(self, config: MemoryConfig = MemoryConfig()):
+    def __init__(self, config: MemoryConfig | None = None):
+        # Same shared-default hazard as Memory.__init__
+        config = config or MemoryConfig()
         self.config = config
 
         self.embedding_model = EmbedderFactory.create(
